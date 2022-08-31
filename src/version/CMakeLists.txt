@@ -17,3 +17,16 @@ setup_project_source(Version "Version"
 # Target
 configure_project_executable(Version)
 configure_cxx_target(Version)
+
+# Custom
+add_custom_command(
+  COMMENT			 "Generate version file"
+  OUTPUT    		 ${abs_gen}/git_version.h
+  COMMAND   		 ${Python3_EXECUTABLE}
+                     ${abs_src}/generate_git_version.py
+					 ${abs_gen}/git_version.h
+  DEPENDS			 ${abs_src}/touch.txt
+                     ${abs_src}/generate_git_version.py
+  WORKING_DIRECTORY  ${project_root_dir}
+  VERBATIM
+)
