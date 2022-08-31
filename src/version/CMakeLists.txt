@@ -5,7 +5,7 @@ init_project(Version)
 
 # Sources static
 setup_project_source(Version "Backend"
-  touch.txt
+  ../touch
   generate_git_version.py
 )
 setup_project_source(Version "Version"
@@ -25,7 +25,7 @@ add_custom_command(
   COMMAND   		 ${Python3_EXECUTABLE}
                      ${abs_src}/generate_git_version.py
 					 ${abs_gen}/git_version.h
-  DEPENDS			 ${abs_src}/touch.txt
+  DEPENDS			 ${abs_src}/../touch
                      ${abs_src}/generate_git_version.py
   WORKING_DIRECTORY  ${project_root_dir}
   VERBATIM

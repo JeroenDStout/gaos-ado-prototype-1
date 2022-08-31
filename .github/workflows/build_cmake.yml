@@ -21,9 +21,13 @@ jobs:
           }
     steps:
     - uses: actions/checkout@v2
+    - name: git fetch
+      run: git fetch --prune --unshallow --tags
     - name: mkdir
       run: mkdir build
     - name: cmake build
       run: cmake -Bbuild -S.
     - name: cmake make
-      run: cmake --build build/
+      run: cmake --build build/ --config Release
+    - name: check version
+      run: ./build/bin/Release/Version 

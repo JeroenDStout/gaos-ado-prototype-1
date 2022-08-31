@@ -58,8 +58,6 @@ with open(output_path, 'w') as f:
   f.write( " *                Please do not edit by hand                   *\n")
   f.write( " *                                                             *\n")
   f.write( " ***************************************************************/\n")
-  f.write( "\n\n") 
-  f.write( "#include <array>\n")
   f.write( "\n\n")
   f.write( "namespace Ado::Version {\n")
   f.write( "\n\n")

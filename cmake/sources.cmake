@@ -35,13 +35,15 @@ macro(internal_add_project_source source is_generated)
   endif()
   
   if (NOT EXISTS ${new_file})
-    message(STATUS " - Creating ${source}")
-  
     get_filename_component(directory ${new_file} DIRECTORY)
     file(MAKE_DIRECTORY ${directory})
-    file(TOUCH ${new_file})
+	
+    if (NOT ${is_generated} STREQUAL "GENERATED")
+      message(STATUS " - Creating ${source}")
+      file(TOUCH ${new_file})
+    endif()
   endif()
-  
+	  
   list(APPEND new_files ${new_file})
 endmacro()
 
