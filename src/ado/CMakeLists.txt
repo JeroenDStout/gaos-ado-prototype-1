@@ -1,13 +1,13 @@
-#Define the Ado Project
-project(Ado)
+init_directory(Ado)
 
-set(source_experiment
+# Project
+init_project(Ado)
+
+# Sources
+setup_project_source(Ado "Experiment"
   hello_world.cpp
 )
 
-source_group("Experiment" FILES ${source_experiment})
-
-add_executable(Ado
-  ${source_experiment}
-)
-configure_cxx_project(Ado)
+# Target
+configure_project_executable(Ado)
+configure_cxx_target(Ado)

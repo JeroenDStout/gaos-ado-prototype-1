@@ -57,9 +57,9 @@ endif()
 # Projects
 #
 
-function( configure_cxx_project project_ref )
+function( configure_cxx_target project_ref )
 		
-  message(STATUS "Configure CXX Project ${project_ref}")
+  message(STATUS "Configure CXX Target ${project_ref}")
 	
   set_property(TARGET ${project_ref} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$(Configuration)")
   
