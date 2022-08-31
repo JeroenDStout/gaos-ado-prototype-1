@@ -120,6 +120,15 @@ function(configure_project_executable project_ref)
   
   add_executable(${project_ref} ${${project_source_list}})
   target_include_directories(${project_ref} PRIVATE ${abs_src} ${abs_gen})
+  
+  add_custom_command(
+	TARGET     ${project_ref}
+    POST_BUILD
+    COMMAND    echo * ${project_ref} output $<CONFIG>: $<TARGET_FILE:${project_ref}>
+    VERBATIM
+  )
+  
+  install(TARGETS ${project_ref} DESTINATION ${project_root_dir}/bin)
 endfunction()
 
 
@@ -132,4 +141,5 @@ function(configure_project_static_lib project_ref)
   
   add_library(${project_ref} STATIC ${${project_source_list}})
   target_include_directories(${project_ref} PRIVATE ${abs_src} ${abs_gen})
+  install(TARGETS ${project_ref} DESTINATION ${project_root_dir}/bin)
 endfunction()

@@ -1,5 +1,10 @@
 name: GitHub Actions Try-Out
+
 on: [push]
+
+env:
+  BUILD_TYPE: Release
+  
 jobs:
   build:
     name: ${{ matrix.config.name }}
@@ -21,13 +26,15 @@ jobs:
           }
     steps:
     - uses: actions/checkout@v2
+    
     - name: git fetch
-      run: git fetch --prune --unshallow --tags
-    - name: mkdir
-      run: mkdir build
-    - name: cmake build
-      run: cmake -Bbuild -S.
-    - name: cmake make
-      run: cmake --build build/ --config Release
-    - name: check version
-      run: ./build/bin/Release/Version 
+      run: git fetch --all --unshallow --tags
+      
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      
+    - name: Show version
+      run: ${{github.workspace}}/build/bin/Release/Version
