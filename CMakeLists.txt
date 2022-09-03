@@ -13,6 +13,7 @@ include(cmake/cxx.cmake)
 include(cmake/python.cmake)
 
 # Support
+include(cmake/get_cpm.cmake)
 include(cmake/artefacts.cmake)
 include(cmake/sources.cmake)
 
