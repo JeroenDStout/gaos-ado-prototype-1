@@ -1,55 +1,85 @@
+import datetime
+import subprocess
 import sys
-import os
 
+# File out
 output_path = sys.argv[1]
 
-stream = os.popen('git describe --tags')
-essentialVersion = stream.read().strip()
+# The compile stamp is the date of compilation and the compiler(s) used
+compileElements = [ [ "C++", sys.argv[2] ],
+                    [ "Python", ".".join([ str(i) for i in sys.version_info]) ]
+                  ]
+timestamp       = datetime.datetime.now(datetime.timezone.utc).strftime("%d/%m/%Y, %H:%M UTC")
 
-stream = os.popen('git log -15 --oneline --decorate')
-detailedVersionRaw = stream.read()
+stampPrefixLen  = max( [ len(elem[0]) for elem in compileElements ] )
+compileStamp    = (   [ f"Compiled on {timestamp}" ]
+                    + [ f"{elem[0].ljust(stampPrefixLen)} : {elem[1]}" for elem in compileElements ] )
 
-detailedVersion = []
-longestPrefix = 0
+# The essential version is this commit relative to the last tag
+stream = subprocess.check_output('git describe --tags'.split(' '))
+essentialVersion = stream.decode(sys.stdout.encoding).strip()
 
 print()
 print("  Version: " + essentialVersion)
+print("  " + "\n  ".join(compileStamp))
 print()
 
-for line in [ s.strip().split(" ", 1) for s in detailedVersionRaw.splitlines() ]:
-  data = {}
-  data["id"]       = line[0].strip()
-  data["branches"] = []
-  data["versions"] = []
-  data["issues"]   = ''
-  data["prefix"]   = ''
+# Get a shortened list of the last 100 commits
+stream = subprocess.check_output('git log -50 --pretty="%h$$%(describe)$$%cd$$%D$$%s" --decorate --date=format:%y-%b-%d'.split(' '))
+detailedVersionRaw = stream.decode(sys.stdout.encoding)
+
+# Put all relevant git commits in a list
+gitVersionData = []
+
+fullDetailLines    = 10
+versionDetailLines = 10
+anyTagsSeen        = False
+
+longestBranchVersionPrefix = 0
+longestBranchTagPrefix     = 0
+
+allLines = [ list(map(str.strip, s[1:-1].split("$$"))) for s in detailedVersionRaw.splitlines() ]
+for (gid, desc, date, info, msg) in allLines:
+  # Extract information
+  branchInfo = list(filter(None, map(str.strip, info.split(','))))
+  tagInfo    = [ x[5:] for x in branchInfo if x.startswith('tag: ') ]
+  branchInfo = [ x.replace('HEAD ->', '').strip()
+                 for x in branchInfo if     not x.startswith('origin')
+                                        and not x.startswith('tag:')
+                                        and not x == 'release'
+               ]
   
-  if line[1][0] != '(':
-    data["description"] = line[1]
-  else:
-    info = line[1].split(')', 1)
-    
-    all_issues   = []
-    all_versions = []
-    
-    branches = info[0][1:].replace('HEAD ->', '').split(",")
-    for branch in [ elem.strip() for elem in branches ]:
-      if branch.startswith('gaos-'):
-        all_issues.append(branch.split("--", 1)[0])
-      if branch.startswith('tag:'):
-        all_versions.append(branch[5:])
-      if branch in ['release', 'develop']:
-        data["branches"].append(branch)
-        
-    data["versions"]    = ' '.join(all_versions).lower()
-    data["issues"]      = ' '.join(all_issues).upper()
-    data["description"] = info[1].strip()
-    
-    prefix = data["prefix"] = data["versions"].strip()
-    
-    longestPrefix = max(longestPrefix, len(prefix))
+  # If we are out of detail lines, skip if there is no important information
+  fullDetailLines -= 1
+  if fullDetailLines < 0:
+    if len(tagInfo) == 0 and len(branchInfo) == 0:
+      continue
+    versionDetailLines -= 1
+      
+  # If we are out of version lines and we have seen a tag, break out
+  if versionDetailLines < 0:
+    if not anyTagsSeen and len(tagInfo) == 0:
+      break
+      
+  # Extract goas specific branch names
+  goasInfo   = [ x.split('--')[0].upper() for x in branchInfo if x.startswith('gaos') ]
+  branchInfo = [ x for x in branchInfo if not x.startswith('gaos') ]
   
-  detailedVersion.append(data)
+  # Extract branch and version prefixes
+  branchPrefix  = ' '.join(tagInfo + branchInfo + goasInfo)
+  versionPrefix = desc.split('-')
+  versionPrefix = '' if len(versionPrefix) < 2 else versionPrefix[-2]
+  
+  # Add data
+  longestBranchVersionPrefix = max(longestBranchVersionPrefix, len(versionPrefix))
+  longestBranchTagPrefix     = max(longestBranchTagPrefix, len(branchPrefix))
+  gitVersionData.append([ gid, versionPrefix, branchPrefix, f"{date} {msg}" ])
+  
+  # Have we seen a tag?
+  anyTagsSeen = len(tagInfo) > 0
+  
+# Turn into git timestamps
+gitstamp = [ f"{d[0]} {d[1].rjust(longestBranchVersionPrefix)} {d[2].ljust(longestBranchTagPrefix)} {d[3]}" for d in gitVersionData ]
 
 with open(output_path, 'w') as f:
   f.write( "/***************************************************************\n")
@@ -61,18 +91,21 @@ with open(output_path, 'w') as f:
   f.write( "\n\n")
   f.write( "namespace Ado::Version {\n")
   f.write( "\n\n")
+  f.write( "    constexpr char const * get_compile_stamp() {\n")
+  f.write( "        return (\n          \""
+    + "\\n\"\n          \"".join(compileStamp) + "\"\n")
+  f.write( "        );\n")
+  f.write( "    }\n")
+  f.write( "\n\n")
   f.write( "    constexpr char const * get_git_essential_version() {\n")
-  f.write(f"        return \"{essentialVersion}\";\n")
+  f.write(f"        return (\n          \"{essentialVersion}\"\n")
+  f.write( "        );\n")
   f.write( "    }\n")
   f.write( "\n\n")
   f.write( "    constexpr char const * get_git_history() {\n")
-  f.write(f"        return\n")
-  for version in detailedVersion:
-    f.write(f"          \"{version['id']} {version['prefix'].ljust(longestPrefix)} {version['description']}")
-    if len(version["issues"]) > 0:
-      f.write(" (" + version["issues"] + ")")
-    f.write( "\\n\"\n")
-  f.write( "        ;\n")
+  f.write( "        return (\n          \""
+    + "\\n\"\n          \"".join(gitstamp) + "\"\n")
+  f.write( "        );\n")
   f.write( "    }\n")
   f.write( "\n\n")
   f.write( "}\n")

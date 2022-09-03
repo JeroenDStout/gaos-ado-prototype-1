@@ -115,7 +115,7 @@ function(configure_project_executable project_ref)
   set_project_source_list(${project_ref})
   clean_project_source_for_build()
   
-  message(STATUS "Configuring static library " project_ref)
+  message(STATUS "Configuring executable" project_ref)
   print_all_project_sources()
   
   add_executable(${project_ref} ${${project_source_list}})
