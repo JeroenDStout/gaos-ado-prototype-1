@@ -87,8 +87,21 @@ macro(setup_project_source project_ref project_source_group)
 endmacro()
 
 
-macro(clean_project_source_for_build)
-  list(REMOVE_DUPLICATES ${project_source_list})
+macro(setup_project_source_specific project_ref project_source_group generated)
+  set_project_source_list(${project_ref})
+  
+  set(new_files "")
+  
+  message(STATUS "Add sources for ${project_ref}/${project_source_group}")
+  
+  foreach (var IN ITEMS ${ARGN})
+    internal_add_project_source(${var} ${generated})
+  endforeach()
+  
+  # set source group
+  source_group(${project_source_group} FILES ${new_files})
+  
+  list(APPEND ${project_source_list} ${new_files})
 endmacro()
 
 
@@ -111,11 +124,15 @@ macro(print_all_project_sources)
 endmacro()
 
 
+macro(clean_project_source_for_build)
+  list(REMOVE_DUPLICATES ${project_source_list})
+endmacro()
+
 function(configure_project_executable project_ref)
   set_project_source_list(${project_ref})
   clean_project_source_for_build()
   
-  message(STATUS "Configuring executable" project_ref)
+  message(STATUS "Configuring executable ${project_ref}")
   print_all_project_sources()
   
   add_executable(${project_ref} ${${project_source_list}})
@@ -136,7 +153,7 @@ function(configure_project_static_lib project_ref)
   set_project_source_list(${project_ref})
   clean_project_source_for_build()
   
-  message(STATUS "Configuring static library " project_ref)
+  message(STATUS "Configuring static library ${project_ref}")
   print_all_project_sources()
   
   add_library(${project_ref} STATIC ${${project_source_list}})
