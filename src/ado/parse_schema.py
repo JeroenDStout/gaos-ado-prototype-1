@@ -73,11 +73,27 @@ for module in operator_submodule:
   out_def = f"{out_dir}/{module}_def.h"
 
   with open(f"{out_imp}-tmp", 'w') as f:
+    f.write( "\n\n")
+    f.write( "     /***************************************************************\n")
+    f.write( "      *                                                             *\n")
+    f.write( "      *            This file was automatically generated            *\n")
+    f.write( "      *                Please do not edit by hand                   *\n")
+    f.write( "      *                                                             *\n")
+    f.write( "      ***************************************************************/\n")
+    f.write( "\n\n")
     f.write(f'// This is a placeholder file explicitly implementing {module}, hooray')
   if replace_file_if_different(f"{out_imp}-tmp", out_imp):
     print(f"{info_prefix} Updated {module}_imp.cpp")
     
   with open(f"{out_def}-tmp", 'w') as f:
+    f.write( "\n\n")
+    f.write( "     /***************************************************************\n")
+    f.write( "      *                                                             *\n")
+    f.write( "      *            This file was automatically generated            *\n")
+    f.write( "      *                Please do not edit by hand                   *\n")
+    f.write( "      *                                                             *\n")
+    f.write( "      ***************************************************************/\n")
+    f.write( "\n\n")
     f.write(f'// This is a placeholder file defining {module}, hooray')
   if replace_file_if_different(f"{out_def}-tmp", out_def):
     print(f"{info_prefix} Updated {module}_def.h")
