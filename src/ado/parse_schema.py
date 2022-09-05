@@ -1,6 +1,7 @@
 info_prefix = "Ado-ps:"
 
 import sys
+import time
 
 # We get our extra include paths as an argument
 sys.path += sys.argv[1].split(';')
@@ -10,17 +11,28 @@ sys.path += sys.argv[1].split(';')
 arguments = sys.argv[4:]
 print(f"{info_prefix} Parsing {path_in}")
 
-# Get the lark submodule for parsing
-import lark
-print(f"{info_prefix} Using lark v" + lark.__version__)
+# Get the processor
+import ado.parser   as ado_parser
+import ado.splitter as ado_splitter
+print("\n".join(f"{info_prefix} Version: {x}" for x in ado_parser.get_version()))
 
-# Temp define operators
-operator_submodule = [ 'operator1', 'operator2' ]
+# Read and parse the schema
+with open(path_in, 'r') as f:
+  start_time = time.time()
+  schema = ado_parser.parse(f.read())
+print(f"{info_prefix} {str(int((time.time() - start_time) * 1000))}ms parsing complete")
+
+# Split the data into the different groups
+splitted_data = ado_splitter.split(schema)
+print(f"{info_prefix} {str(int((time.time() - start_time) * 1000))}ms splitting complete")
+
+# Define the submodules for operators
+operator_submodule = [ key for key, value in splitted_data.groups.items() if len(value.operators) ]
 
 # We gaurantee these files exist
-all_imp_out = [ x + '_imp.cpp' for x in operator_submodule ]
-all_def_out = [ x + '_def.h'   for x in operator_submodule ]
-all_hpp_out = [ x + '.hpp'     for x in operator_submodule ]
+all_imp_out = [ 'op_' + x + '_imp.cpp' for x in operator_submodule ]
+all_def_out = [ 'op_' + x + '_def.h'   for x in operator_submodule ]
+all_hpp_out = [ 'op_' + x + '.hpp'     for x in operator_submodule ]
 
 # Get file util
 import os
@@ -47,7 +59,7 @@ def replace_file_if_different(path_in, path_out):
 # Ensure output dir exists
 if not os.path.isdir(out_dir):
   os.makedirs(out_dir)
-
+  
 # Write the manifest
 with open(path_out + '-tmp', 'w') as f:
   for o in all_imp_out:
@@ -69,9 +81,10 @@ if '--manifest_only' in arguments:
 for module in operator_submodule:
   print(f"{info_prefix} Module {module}") 
     
-  out_imp = f"{out_dir}/{module}_imp.cpp"
-  out_def = f"{out_dir}/{module}_def.h"
+  out_imp = f"{out_dir}/op_{module}_imp.cpp"
+  out_def = f"{out_dir}/op_{module}_def.h"
 
+  # Write a implementation file
   with open(f"{out_imp}-tmp", 'w') as f:
     f.write( "\n\n")
     f.write( "     /***************************************************************\n")
@@ -81,10 +94,23 @@ for module in operator_submodule:
     f.write( "      *                                                             *\n")
     f.write( "      ***************************************************************/\n")
     f.write( "\n\n")
-    f.write(f'// This is a placeholder file explicitly implementing {module}, hooray')
+    f.write(f"// \n")
+    f.write(f"// This file handles implementations for the operators in {module}\n")
+    
+    group = splitted_data.groups.get(module, None)
+    print(group)
+    if group != None:
+      for elem in group.operators:
+        f.write(f"//  * {str(elem)}\n")
+    
+    f.write(f"// \n")
+    f.write( "\n\n")
+    
+  # Try to replace implementation file if changed
   if replace_file_if_different(f"{out_imp}-tmp", out_imp):
     print(f"{info_prefix} Updated {module}_imp.cpp")
     
+  # Write a definition file
   with open(f"{out_def}-tmp", 'w') as f:
     f.write( "\n\n")
     f.write( "     /***************************************************************\n")
@@ -94,7 +120,18 @@ for module in operator_submodule:
     f.write( "      *                                                             *\n")
     f.write( "      ***************************************************************/\n")
     f.write( "\n\n")
-    f.write(f'// This is a placeholder file defining {module}, hooray')
+    f.write(f"// \n")
+    f.write(f"// This file handles definitions for the operators in {module}\n")
+    
+    group = splitted_data.groups.get(module, None)
+    if group != None:
+      for elem in group.operators:
+        f.write(f"//  * {str(elem)}\n")
+    
+    f.write(f"// \n")
+    f.write( "\n\n")
+    
+  # Try to replace definition file if changed
   if replace_file_if_different(f"{out_def}-tmp", out_def):
     print(f"{info_prefix} Updated {module}_def.h")
     

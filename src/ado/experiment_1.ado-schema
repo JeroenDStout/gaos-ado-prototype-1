@@ -1,0 +1,26 @@
+using scalar = [ float, int ]
+    
+{
+    group simple
+
+    add  := (scalar lh, scalar rh) -> (scalar result)
+    sub  := (scalar lh, scalar rh) -> (scalar result)
+    mul  := (scalar lh, scalar rh) -> (scalar result)
+    div  := (scalar lh, scalar rh) -> (scalar result)
+    diff := (scalar lh, scalar rh) -> (scalar result)
+}
+{
+    group vector
+    
+    add  := (scalar lh_x, scalar lh_y, scalar rh_x, scalar rh_y) -> (scalar result_x, scalar result_y)
+}
+{
+    group optional_write
+    
+    set_with_threshold :=
+      (scalar current, scalar target, scalar threshold)
+      -> (scalar result [optional])
+}
+
+
+
