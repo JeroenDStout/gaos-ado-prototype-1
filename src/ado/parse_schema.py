@@ -90,7 +90,6 @@ for module in operator_submodule:
     if group == None:
       continue
     
-    f.write( "#pragma once")
     f.write( "\n\n")
     f.write( "     /***************************************************************\n")
     f.write( "      *                                                             *\n")
