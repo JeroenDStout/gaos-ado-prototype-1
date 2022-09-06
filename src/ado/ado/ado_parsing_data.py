@@ -25,13 +25,14 @@ class DescOperator:
     self.name = name
     self.arg_in = []
     self.arg_out = []
-    self.using = []
+    self.using = {}
 
   def __str__(self):
     return (
         f"operator {self.name} "
       + f"({', '.join(map(str, self.arg_in))}) "
       + f"-> ({', '.join(map(str, self.arg_out))})"
+      + f" using {self.using}"
     )
     
 class DescGroup:

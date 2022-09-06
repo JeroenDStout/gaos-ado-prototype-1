@@ -44,8 +44,9 @@ def split_recursive(out_split, stack, data):
     # Add an operator to the current group
     elif type(elem) is DescOperator:
       operator_copy = copy.deepcopy(elem)
+      operator_copy.using = copy.deepcopy(stack.using)
       group = out_split.groups.setdefault(stack.group, SplittedGroup())
-      group.operators += [ elem ]
+      group.operators += [ operator_copy ]
 
 
 # Create splitted data and return it
