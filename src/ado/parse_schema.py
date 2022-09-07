@@ -119,9 +119,8 @@ for module in operator_submodule:
     f.write(f"    \n")
       
     for elem in group.operators:
-      f.write(f"    op_{elem.name}<op_{elem.name}_provider_stub_default>::call_data {elem.name}_data;\n")
-      f.write(f"    op_{elem.name}<op_{elem.name}_provider_stub_default> {elem.name}_operator;\n")
-      f.write(f"    {elem.name}_operator.exec({elem.name}_data);\n")
+      f.write(f"    op_{elem.name}_call_data_default {elem.name}_data;\n")
+      f.write(f"    op_{elem.name}{{}}.exec({elem.name}_data);\n")
       
     f.write( "}\n")
     
@@ -163,12 +162,14 @@ for module in operator_submodule:
       for arg in elem.arg_in:
         getset_function_descs.append([
           arg.arg_type, "stub_in_" + arg.arg_name,
-          "inline", f"const {arg.arg_type}", f"{arg.arg_name}_read()", f"{{ return stub_in_{arg.arg_name}; }}"
+          "inline", f"{arg.arg_type}_cref",
+          f"read_{arg.arg_name}()", f"{{ return stub_in_{arg.arg_name}; }}"
         ])
       for arg in elem.arg_out:
         getset_function_descs.append([
           arg.arg_type, "stub_out_" + arg.arg_name,
-          "inline", "void", f"{arg.arg_name}_write(const {arg.arg_type} x)", f"{{ stub_out_{arg.arg_name} = x; }}"
+          "inline", "void",
+          f"write_{arg.arg_name}({arg.arg_type}_cref x)", f"{{ stub_out_{arg.arg_name} = x; }}"
         ])
         
       desc_lengths = [
@@ -184,7 +185,7 @@ for module in operator_submodule:
         f"{x[0].ljust(desc_lengths[0])} {(x[1]+';').ljust(desc_lengths[1])}"
           for x in getset_function_descs
       ])
-      getset_function_descs = '\n'.join([
+      getset_call_function_descs = '\n'.join([
         f"{x[2].ljust(desc_lengths[2])} {x[3].ljust(desc_lengths[3])} {x[4].ljust(desc_lengths[4])} {x[5].ljust(desc_lengths[5])}"
           for x in getset_function_descs
       ])
@@ -193,27 +194,44 @@ for module in operator_submodule:
       f.write( "\n      ")
       f.write( ",\n      ".join([ f"typename {key}_t" for key in elem.using.keys()]))
       f.write( "\n    >\n")
-      f.write(f"    struct op_{elem.name}_provider_stub {{" + "\n")
+      f.write(f"    struct op_{elem.name}_call_data_default_abstract {{" + "\n")
       f.write( "        " +
-             "\n        ".join([ f"using {key} = {key}_t;" for key in elem.using.keys()]) + "\n")
+             "\n        ".join(sum([
+                [  f"using {key}      = {key}_t;",
+                   f"using {key}_ref  = {key} &;",
+                   f"using {key}_cref = {key} const &;",
+                ]
+             for key in elem.using.keys()], [])) + "\n")
       f.write( "        \n")
-      f.write( "        struct call_data {\n")
-      f.write( "            " + getset_function_descs.replace("\n", "\n            ") + "\n")
-      f.write( "            \n")
-      f.write( "            " + getset_stub_var_descs.replace("\n", "\n            ") + "\n")
-      f.write( "        };\n")
+      f.write( "        " + getset_call_function_descs.replace("\n", "\n        ") + "\n")
+      f.write( "        \n")
+      f.write( "        " + getset_stub_var_descs.replace("\n", "\n        ") + "\n")
       f.write( "    };\n")
-      f.write(f"    using op_{elem.name}_provider_stub_default = op_{elem.name}_provider_stub<")
+      f.write(f"    using op_{elem.name}_call_data_default = op_{elem.name}_call_data_default_abstract<")
       f.write( ", ".join([ value[0] for value in elem.using.values()]) + ">;\n")
       f.write( "    \n\n")
       
-      f.write( "    template<\n")
-      f.write(f"      typename data_provider_t = ado_gen::{module}::op_{elem.name}_provider_stub_default\n")
-      f.write( "    >\n")
       f.write(f"    struct op_{elem.name} {{" + "\n")
-      f.write( "        using call_data = typename data_provider_t::call_data;\n")
+            
+      for arg in elem.arg_in:
+        f.write( "        struct {\n")
+        f.write( "          struct {\n")
+        f.write( "            template<typename call_data>\n")
+        f.write(f"            typename call_data::{arg.arg_type}_cref operator()(call_data & data) {{ return data.read_{arg.arg_name}(); }}" + "\n")
+        f.write( "          } read;\n")
+        f.write(f"        }} {arg.arg_name};" + "\n")
+            
+      for arg in elem.arg_out:
+        f.write( "        struct {\n")
+        f.write( "          struct {\n")
+        f.write( "            template<typename call_data>\n")
+        f.write(f"            void operator()(call_data & data, typename call_data::{arg.arg_type}_cref {arg.arg_name}) {{ data.write_{arg.arg_name}({arg.arg_name}); }}" + "\n")
+        f.write( "          } write;\n")
+        f.write(f"        }} {arg.arg_name};" + "\n")
+      
       f.write( "        \n")
-      f.write( "        inline static void exec(call_data& data);\n")
+      f.write( "        template<typename call_data>\n")
+      f.write( "        inline void exec(call_data& data);\n")
       f.write( "    };\n\n\n")
       
     f.write( "}\n")

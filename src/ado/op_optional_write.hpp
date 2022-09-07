@@ -3,11 +3,11 @@
 #include <cmath>
 
 
-template<typename t>
-void ado_gen::optional_write::op_set_with_threshold<t>::exec(call_data& data)
+template<typename call_data>
+void ado_gen::optional_write::op_set_with_threshold::exec(call_data& d)
 {
-    typename t::scalar target = data.target_read();
+    auto tar = target.read(d);
 
-    if (std::abs(data.current_read() - target) > data.threshold_read())
-      data.result_write(target);
+    if (std::abs(current.read(d) - tar) > threshold.read(d))
+      result.write(d, tar);
 }
